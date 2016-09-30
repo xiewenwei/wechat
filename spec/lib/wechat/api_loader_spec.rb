@@ -23,6 +23,21 @@ RSpec.describe Wechat::ApiLoader do
     ENV['WECHAT_CONF_FILE'] = nil
   end
 
+  it 'should load config file with single account' do
+    clear_wechat_configs
+    ENV['RAILS_ENV'] = ''
+    ENV['WECHAT_CONF_FILE'] = File.join(Dir.getwd, 'spec/dummy/config/single_wechat.yml')
+
+    expect(Wechat.config.appid).to eq 'my_single_appid'
+    expect(Wechat.config.secret).to eq 'my_single_secret'
+    expect(Wechat.config(:default).appid).to eq 'my_single_appid'
+    expect(Wechat.config(:default).secret).to eq 'my_single_secret'
+
+    clear_wechat_configs
+    ENV['RAILS_ENV'] = nil
+    ENV['WECHAT_CONF_FILE'] = nil
+  end
+
   it 'should create api for account' do
     clear_wechat_configs
     ENV['WECHAT_CONF_FILE'] = File.join(Dir.getwd, 'spec/dummy/config/dummy_wechat.yml')

@@ -60,23 +60,27 @@ HELP
     end
 
     private_class_method def self.config_from_file
+      # *files* holds all files ready to check. First has high priority.
+      files = []
+      files << ENV['WECHAT_CONF_FILE'] if ENV['WECHAT_CONF_FILE']
       if defined?(::Rails)
-        config_file = ENV['WECHAT_CONF_FILE'] || Rails.root.join('config/wechat.yml')
-        return resovle_config_file(config_file, Rails.env.to_s)
-      else
-        rails_config_file = ENV['WECHAT_CONF_FILE'] || File.join(Dir.getwd, 'config/wechat.yml')
-        home_config_file = File.join(Dir.home, '.wechat.yml')
-        if File.exist?(rails_config_file)
-          rails_env = ENV['RAILS_ENV'] || 'development'
-          config = resovle_config_file(rails_config_file, rails_env)
-          if config.present? && (default = config[:default])  && (default['appid'] || default['corpid'])
-            puts "Using rails project #{ENV['WECHAT_CONF_FILE'] || "config/wechat.yml"} #{rails_env} setting..."
-            return config
-          end
+        files << Rails.root.join('config/wechat.yml')
+      end
+      files << File.join(Dir.getwd, 'config/wechat.yml')
+      files << File.join(Dir.home, '.wechat.yml')
+
+      config_file = nil
+      files.each do |file|
+        if File.exist?(file)
+          config_file = file
+          break
         end
-        if File.exist?(home_config_file)
-          return resovle_config_file(rails_config_file, ENV['RAILS_ENV'])
-        end
+      end
+
+      if config_file
+        config_env = ENV['RAILS_ENV'] || (defined?(::Rails) ? Rails.env.to_s : 'development')
+        # puts "Using Wechat Config file #{config_file} #{config_env}"
+        resovle_config_file(config_file, config_env)
       end
     end
 
@@ -84,7 +88,7 @@ HELP
       if File.exist?(config_file)
         raw_data = YAML.load(ERB.new(File.read(config_file)).result)
         configs = {}
-        if env
+        if env && env != ''
           # Process multiple accounts when env is given
           raw_data.each do |key, value|
             if key == env
@@ -95,7 +99,7 @@ HELP
           end
         else
           # Treat is as one account when env is omitted
-          configs = raw_data
+          configs[:default] = raw_data
         end
         configs
       end
